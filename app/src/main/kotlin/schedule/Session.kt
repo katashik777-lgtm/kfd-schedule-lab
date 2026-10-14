@@ -2,7 +2,7 @@ package schedule
 
 import java.time.LocalDate
 
-interface Session {
+sealed interface Session {
     val date: LocalDate
     val topic: String
 }
@@ -40,7 +40,7 @@ private fun validateAndCopyTeachers(teachers: List<String>, minTeachers: Int): L
     return copied
 }
 
-abstract class ActiveSession(
+sealed class ActiveSession(
     override val date: LocalDate,
     override val topic: String,
     val location: String,
@@ -100,4 +100,16 @@ class Cancelled(
 
     override fun toString(): String =
         "Cancelled(date=$date, topic='$topic')"
+}
+
+sealed interface RescheduleResult {
+    data class Success(val session: ActiveSession) : RescheduleResult
+    data object CancelledSessionCannotBeRescheduled : RescheduleResult
+}
+
+fun Session.reschedule(newDate: LocalDate): RescheduleResult = when (this) {
+    is Lecture -> RescheduleResult.Success(Lecture(newDate, topic, location, teachers))
+    is Practice -> RescheduleResult.Success(Practice(newDate, topic, location, teachers))
+    is Exam -> RescheduleResult.Success(Exam(newDate, topic, location, teachers))
+    is Cancelled -> RescheduleResult.CancelledSessionCannotBeRescheduled
 }

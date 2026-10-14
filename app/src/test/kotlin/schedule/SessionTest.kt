@@ -144,4 +144,22 @@ class SessionTest {
         assertEquals(3, auditedRepo.all().size)
         assertEquals(2, auditedRepo.events.size)
     }
+
+    @Test
+    fun reschedulesActiveSessionsAndRejectsCancelled() {
+        val original = Exam(LocalDate.of(2026, 10, 15), "Oral exam", "Room 401", listOf("Portnov", "Stepanova"))
+        val result = original.reschedule(LocalDate.of(2026, 10, 20))
+        val moved = kotlin.test.assertIs<RescheduleResult.Success>(result).session
+
+        assertEquals(LocalDate.of(2026, 10, 20), moved.date)
+        assertEquals(LocalDate.of(2026, 10, 15), original.date) // исходное не изменилось
+        assertEquals(original.topic, moved.topic)
+
+        val cancelled = Cancelled(LocalDate.of(2026, 10, 19), "Postponed")
+        assertEquals(RescheduleResult.CancelledSessionCannotBeRescheduled, cancelled.reschedule(LocalDate.of(2026, 10, 25)))
+
+        assertFailsWith<IllegalArgumentException> {
+            original.reschedule(LocalDate.of(0, 1, 1))
+        }
+    }
 }
